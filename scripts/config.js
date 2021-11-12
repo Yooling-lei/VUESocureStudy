@@ -16,6 +16,12 @@ const builds = {
     dest: resolve("dist/vue.js"),
     format: "umd",
   },
+  "web-runtime-dev": {
+    entry: resolve("web/entry-runtime.js"),
+    dest: resolve("disk/vue.runtime.js"),
+    format:'umd',
+    env:'development',
+  },
 };
 /**
  *  entry: resolve("web/entry-runtime-with-compiler.js"),=>

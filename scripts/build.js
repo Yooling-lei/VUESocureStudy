@@ -1,5 +1,18 @@
 /** 生成编译后的代码 */
 let builds = require("./config").getAllBuilds();
 console.log(builds);
-// builds(builds);
-// function build(builds) {}
+build(builds);
+function build(builds) {
+  let built = 0;
+  const total = builds.length;
+  const next = () => {
+    buildEntry(builds[built]).then(() => {
+      built++;
+      if (built < total) {
+        next();
+      }
+    });
+  };
+  next();
+}
+``

@@ -6,7 +6,7 @@ class ReactiveEffect {
   }
   run() {
     activeEffect = this; // 指向当前effect对象
-    this._fn();
+    return this._fn(); // 让用户可以获得fn的返回值
   }
 }
 
@@ -39,9 +39,12 @@ export function trigger(target, key) {
   }
 }
 
+// 初始化effect对象
 let activeEffect;
 export function effect(fn) {
   //fn
   const _effect = new ReactiveEffect(fn);
   _effect.run();
+  // 把run(fn)的调用直接return出去(bind处理指针问题)
+  return _effect.run.bind(_effect);
 }

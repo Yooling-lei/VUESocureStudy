@@ -24,4 +24,19 @@ describe("effect", () => {
     user.age++;
     expect(nextAge).toBe(12);
   });
+
+  // 调用effect之后返回一个function(runner)=>fn->return 返回值
+  // 也就是调用runner返回内部的返回值
+  it("should return runner when call effect", () => {
+    // effect(fn) => function(runner) => fn => return
+    let foo = 10;
+    const runner = effect(() => {
+      foo++;
+      return "foo";
+    });
+    expect(foo).toBe(11);
+    const r = runner();
+    expect(foo).toBe(12);
+    expect(r).toBe("foo");
+  });
 });

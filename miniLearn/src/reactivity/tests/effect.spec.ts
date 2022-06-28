@@ -40,3 +40,39 @@ describe("effect", () => {
     expect(r).toBe("foo");
   });
 });
+
+it("scheduler", () => {
+  // 1.通过effect的第二个参数给定的一个schedule的fn
+  // 2.effect 第一次执行的时候,还会执行 fn
+  // 3.当响应式对象 set update 时就不会再执行fn了 而是执行 scheduler
+  // 4.当执行 runner 的时候,会再次执行 fn
+  let dummy;
+  let run: any;
+  const scheduler = jest.fn(() => {
+    run = runner;
+  });
+
+  const obj = reactive({ foo: 1 });
+  const runner = effect(
+    () => {
+      dummy = obj.foo;
+    },
+    { scheduler }
+  );
+
+  expect(scheduler).not.toHaveBeenCalled();
+  expect(dummy).toBe(1);
+
+  obj.foo++; // 这时不执行fn,执行schedule(也就是给run指向runner)
+  expect(scheduler).toHaveBeenCalledTimes(1);
+  // 尽管响应式对象++了,被依赖对象不变
+  expect(dummy).toBe(1);
+  // 调用runner
+  run();
+  // runner后被依赖对象赋值为响应式对象
+  expect(dummy).toBe(2);
+
+  // 猜测,这样做的意义
+  // 在整个事件结束后调用runner,赋值依赖对象,而不是每次update都修改
+  // 减少赋值的次数? 可能在后续dom操作更方便调用(钩子?runner时去更新dom?)或者单纯节省性能?实现nexttrick?
+});

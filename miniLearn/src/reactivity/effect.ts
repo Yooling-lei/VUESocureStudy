@@ -1,5 +1,11 @@
+import { extend } from "../shared";
+
 class ReactiveEffect {
   private _fn: any;
+  deps = [];
+  // 当前effect活跃状态
+  active = true;
+  onStop?: () => void;
 
   constructor(fn, public scheduler?) {
     this._fn = fn;
@@ -8,6 +14,20 @@ class ReactiveEffect {
     activeEffect = this; // 指向当前effect对象
     return this._fn(); // 让用户可以获得fn的返回值
   }
+  stop() {
+    // 清除已经被收集的当前effect
+    if (this.active) {
+      cleanupEffect(this);
+      if (this.onStop) this.onStop();
+      this.active = false;
+    }
+  }
+}
+
+function cleanupEffect(effect) {
+  effect.deps.forEach((dep: any) => {
+    dep.delete(effect);
+  });
 }
 
 // 收集依赖
@@ -27,7 +47,19 @@ export function track(target, key) {
     depsMap.set(key, dep);
   }
   // 收集
+  //fn1: rel =  obj.test +obj.test2
+  //fn2: rel2 = obj.test + 1
+  // target:obj
+  // key: test,test2
+  // targetMap: obj:[test:[fn1,fn2],test2:fn1]
+  if (!activeEffect) return;
   dep.add(activeEffect);
+  // 反向关联,把当前effect的deps存到对象里
+
+  // fn1.deps =[[fn1,fn2],[fn1,fn2]]
+  activeEffect.deps.push(dep);
+  // fn1.clearn()后 fn1.deps = [[fn2],[fn2]]
+  // 当然 dep的set里也只有[fn2]了
 }
 
 // 触发依赖
@@ -45,11 +77,23 @@ export function trigger(target, key) {
 
 // 初始化effect对象
 let activeEffect;
-export function effect(fn, options?) {
-  //fn
-  const scheduler = options?.scheduler;
-  const _effect = new ReactiveEffect(fn, scheduler);
+export function effect(fn, options: any = {}) {
+  // fn
+  const _effect = new ReactiveEffect(fn, options.scheduler);
+  // extend
+  extend(_effect, options);
+
+  _effect.onStop = options.onStop;
   _effect.run();
+
+  const runner: any = _effect.run.bind(_effect);
+  runner.effect = _effect;
+
   // 把run(fn)的调用直接return出去(bind处理指针问题)
-  return _effect.run.bind(_effect);
+  return runner;
+}
+
+// stop方法
+export function stop(runner) {
+  runner.effect.stop();
 }

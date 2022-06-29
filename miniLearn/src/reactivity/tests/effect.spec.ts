@@ -1,5 +1,5 @@
 import { reactive } from "../reactive";
-import { effect } from "../effect";
+import { effect, stop } from "../effect";
 /**
  * 这个单元测试需要的效果是什么呢?
  * 1.当reactive对象内的属性修改时,
@@ -74,5 +74,39 @@ it("scheduler", () => {
 
   // 猜测,这样做的意义
   // 在整个事件结束后调用runner,赋值依赖对象,而不是每次update都修改
-  // 减少赋值的次数? 可能在后续dom操作更方便调用(钩子?runner时去更新dom?)或者单纯节省性能?实现nexttrick?
+  // 减少赋值的次数? 可能在后续dom操作更方便调用(钩子?runner时去更新dom?)
+  // 或者单纯节省性能?实现nexttrick?
+});
+
+// 调用stop后,被依赖的对象更新后,有依赖的响应式对象停止更新(unRef?)
+it("stop ", () => {
+  let dummy;
+  const obj = reactive({ prop: 10 });
+  const runner = effect(() => {
+    dummy = obj.prop;
+  });
+  obj.prop = 2;
+  expect(dummy).toBe(2);
+  stop(runner);
+  obj.prop = 3;
+  expect(dummy).toBe(2);
+
+  // 调用runner后,正常update
+  runner();
+  expect(dummy).toBe(3);
+});
+
+// 允许传入一个stop时执行的回调函数
+it("onStop ", () => {
+  const obj = reactive({ foo: 1 });
+  const onStop = jest.fn(() => {});
+  let dummy;
+  const runner = effect(
+    () => {
+      dummy = obj.foo;
+    },
+    { onStop }
+  );
+  stop(runner);
+  expect(onStop).toBeCalledTimes(1);
 });

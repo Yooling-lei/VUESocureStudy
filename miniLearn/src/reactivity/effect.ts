@@ -1,5 +1,7 @@
 import { extend } from "../shared";
 
+let activeEffect;
+let shouldTrack;
 class ReactiveEffect {
   private _fn: any;
   deps = [];
@@ -11,8 +13,17 @@ class ReactiveEffect {
     this._fn = fn;
   }
   run() {
+    // 1.会去收集依赖
+    // shouldTrack 来做区分
+    if (!this.active) {
+      return this._fn(); // 让用户可以获得fn的返回值
+    }
+    shouldTrack = true;
     activeEffect = this; // 指向当前effect对象
-    return this._fn(); // 让用户可以获得fn的返回值
+    const result = this._fn(); // 调用get,收集依赖
+    // rest
+    shouldTrack = false;
+    return result;
   }
   stop() {
     // 清除已经被收集的当前effect
@@ -28,6 +39,8 @@ function cleanupEffect(effect) {
   effect.deps.forEach((dep: any) => {
     dep.delete(effect);
   });
+  effect.deps.length = 0;
+  console.log(effect.deps);
 }
 
 // 收集依赖
@@ -47,12 +60,14 @@ export function track(target, key) {
     depsMap.set(key, dep);
   }
   // 收集
+  //let obj = reactive(xx)
   //fn1: rel =  obj.test +obj.test2
   //fn2: rel2 = obj.test + 1
   // target:obj
   // key: test,test2
   // targetMap: obj:[test:[fn1,fn2],test2:fn1]
   if (!activeEffect) return;
+  // if (!shouldTrack) return;
   dep.add(activeEffect);
   // 反向关联,把当前effect的deps存到对象里
 
@@ -76,7 +91,6 @@ export function trigger(target, key) {
 }
 
 // 初始化effect对象
-let activeEffect;
 export function effect(fn, options: any = {}) {
   // fn
   const _effect = new ReactiveEffect(fn, options.scheduler);

@@ -79,7 +79,7 @@ it("scheduler", () => {
 });
 
 // 调用stop后,被依赖的对象更新后,有依赖的响应式对象停止更新(unRef?)
-it("stop ", () => {
+it("stop reactive  ", () => {
   let dummy;
   const obj = reactive({ prop: 10 });
   const runner = effect(() => {
@@ -88,12 +88,36 @@ it("stop ", () => {
   obj.prop = 2;
   expect(dummy).toBe(2);
   stop(runner);
-  obj.prop = 3;
+  // obj.prop = 3;
+  // set , get 此时又调用了get,又收集了一次依赖,则stop失效
+  // 新增shouldTrack, 仅当第一次effect.run时(也就是new reactiveEffect时才)为true
+  // 为false时不收集依赖
+  // obj.prop = obj.prop + 1;
+  obj.prop = 3
   expect(dummy).toBe(2);
-
   // 调用runner后,正常update
   runner();
   expect(dummy).toBe(3);
+});
+
+it("target map once", () => {
+  let dummy;
+  let dummy2;
+  const obj = reactive({ prop: 10 });
+  const runner = effect(() => {
+    dummy = obj.prop + 1;
+  });
+  const runner2 = effect(() => {
+    dummy2 = obj.prop + 10;
+  });
+  obj.prop = 12;
+  expect(dummy).toBe(13);
+  expect(dummy2).toBe(22);
+  stop(runner2);
+
+  obj.prop = 13;
+  expect(dummy).toBe(14);
+  expect(dummy2).toBe(22);
 });
 
 // 允许传入一个stop时执行的回调函数

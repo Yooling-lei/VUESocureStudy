@@ -17,7 +17,6 @@ function createGetter(isReadonly = false) {
     if (!isReadonly) {
       track(target, key);
     }
-    track(target, key);
     return res;
   };
 }

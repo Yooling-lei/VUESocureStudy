@@ -1,5 +1,9 @@
 import { track, trigger } from "./effect";
 
+const get = createGetter();
+const set = createSetter();
+const readonlyGet = createGetter(true);
+
 function createGetter(isReadonly = false) {
   return function get(target, key) {
     const res = Reflect.get(target, key);
@@ -22,13 +26,14 @@ function createSetter() {
 }
 
 export const mutableHandlers = {
-  get: createGetter(),
-  set: createSetter(),
+  get,
+  set,
 };
 
 export const readonlyHandlers = {
-  get: createGetter(),
+  get: readonlyGet,
   set(target, key, value) {
+    console.warn(`key:${key} set 失败,因为 target为readonly`, target);
     return true;
   },
 };

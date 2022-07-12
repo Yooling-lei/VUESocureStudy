@@ -21,4 +21,13 @@ describe("reactive", () => {
     expect(isReactive(observed.array)).toBe(true);
     expect(isReactive(observed.array[0])).toBe(true);
   });
+
+  it("nested reactive2", () => {
+    const original = { nested: { foo: 1 } };
+    const observed = reactive(original);
+    expect(isReactive(observed.nested)).toBe(true);
+    expect(isReactive(observed.nested)).toBe(true);
+    // expect(isReactive(observed.array)).toBe(true);
+    //expect(isReactive(observed.array[0])).toBe(true);
+  });
 });

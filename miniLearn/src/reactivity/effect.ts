@@ -46,6 +46,7 @@ function cleanupEffect(effect) {
 // 收集依赖
 const targetMap = new Map();
 export function track(target, key) {
+  if (!isTracking()) return;
   // target -> key -> dep
   // 将依赖收集到容器里(一步步映射)
   let depsMap = targetMap.get(target);
@@ -66,8 +67,8 @@ export function track(target, key) {
   // target:obj
   // key: test,test2
   // targetMap: obj:[test:[fn1,fn2],test2:fn1]
-  if (!activeEffect) return;
-  // if (!shouldTrack) return;
+
+  if (dep.has(activeEffect)) return;
   dep.add(activeEffect);
   // 反向关联,把当前effect的deps存到对象里
 
@@ -75,6 +76,10 @@ export function track(target, key) {
   activeEffect.deps.push(dep);
   // fn1.clearn()后 fn1.deps = [[fn2],[fn2]]
   // 当然 dep的set里也只有[fn2]了
+}
+
+function isTracking() {
+  return shouldTrack && activeEffect !== undefined;
 }
 
 // 触发依赖

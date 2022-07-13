@@ -1,4 +1,4 @@
-import { isReactive, isReadonly, reactive } from "../reactive";
+import { isReactive, isReadonly, reactive, isProxy } from "../reactive";
 
 describe("reactive", () => {
   it("happy path ", () => {
@@ -11,6 +11,7 @@ describe("reactive", () => {
     expect(isReactive(original)).toBe(false);
     expect(isReadonly(original)).toBe(false);
     expect(isReadonly(observed)).toBe(false);
+    expect(isProxy(observed)).toBe(true);
   });
 
   // reactive内部嵌套

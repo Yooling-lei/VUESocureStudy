@@ -68,6 +68,10 @@ export function track(target, key) {
   // key: test,test2
   // targetMap: obj:[test:[fn1,fn2],test2:fn1]
 
+  tarckEffects(dep);
+}
+
+export function tarckEffects(dep) {
   if (dep.has(activeEffect)) return;
   dep.add(activeEffect);
   // 反向关联,把当前effect的deps存到对象里
@@ -75,10 +79,10 @@ export function track(target, key) {
   // fn1.deps =[[fn1,fn2],[fn1,fn2]]
   activeEffect.deps.push(dep);
   // fn1.clearn()后 fn1.deps = [[fn2],[fn2]]
-  // 当然 dep的set里也只有[fn2]了
+  // 当然 dep的set里也只有[fn2]
 }
 
-function isTracking() {
+export function isTracking() {
   return shouldTrack && activeEffect !== undefined;
 }
 
@@ -86,6 +90,9 @@ function isTracking() {
 export function trigger(target, key) {
   let depsMap = targetMap.get(target);
   let dep = depsMap.get(key);
+  triggerEffects(dep);
+}
+export function triggerEffects(dep) {
   for (const effect of dep) {
     if (effect.scheduler) {
       effect.scheduler();

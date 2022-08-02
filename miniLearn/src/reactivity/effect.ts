@@ -2,7 +2,7 @@ import { extend } from "../shared";
 
 let activeEffect;
 let shouldTrack;
-class ReactiveEffect {
+export class ReactiveEffect {
   private _fn: any;
   deps = [];
   // 当前effect活跃状态

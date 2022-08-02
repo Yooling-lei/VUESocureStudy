@@ -39,98 +39,98 @@ describe("effect", () => {
     expect(foo).toBe(12);
     expect(r).toBe("foo");
   });
-});
 
-it("scheduler", () => {
-  // 1.通过effect的第二个参数给定的一个schedule的fn
-  // 2.effect 第一次执行的时候,还会执行 fn
-  // 3.当响应式对象 set update 时就不会再执行fn了 而是执行 scheduler
-  // 4.当执行 runner 的时候,会再次执行 fn
-  let dummy;
-  let run: any;
-  const scheduler = jest.fn(() => {
-    run = runner;
+  it("scheduler", () => {
+    // 1.通过effect的第二个参数给定的一个schedule的fn
+    // 2.effect 第一次执行的时候,还会执行 fn
+    // 3.当响应式对象 set update 时就不会再执行fn了 而是执行 scheduler
+    // 4.当执行 runner 的时候,会再次执行 fn
+    let dummy;
+    let run: any;
+    const scheduler = jest.fn(() => {
+      run = runner;
+    });
+
+    const obj = reactive({ foo: 1 });
+    const runner = effect(
+      () => {
+        dummy = obj.foo;
+      },
+      { scheduler }
+    );
+
+    expect(scheduler).not.toHaveBeenCalled();
+    expect(dummy).toBe(1);
+
+    obj.foo++; // 这时不执行fn,执行schedule(也就是给run指向runner)
+    expect(scheduler).toHaveBeenCalledTimes(1);
+    // 尽管响应式对象++了,被依赖对象不变
+    expect(dummy).toBe(1);
+    // 调用runner
+    run();
+    // runner后被依赖对象赋值为响应式对象
+    expect(dummy).toBe(2);
+
+    // 猜测,这样做的意义
+    // 在整个事件结束后调用runner,赋值依赖对象,而不是每次update都修改
+    // 减少赋值的次数? 可能在后续dom操作更方便调用(钩子?runner时去更新dom?)
+    // 或者单纯节省性能?实现nexttrick?
   });
 
-  const obj = reactive({ foo: 1 });
-  const runner = effect(
-    () => {
-      dummy = obj.foo;
-    },
-    { scheduler }
-  );
-
-  expect(scheduler).not.toHaveBeenCalled();
-  expect(dummy).toBe(1);
-
-  obj.foo++; // 这时不执行fn,执行schedule(也就是给run指向runner)
-  expect(scheduler).toHaveBeenCalledTimes(1);
-  // 尽管响应式对象++了,被依赖对象不变
-  expect(dummy).toBe(1);
-  // 调用runner
-  run();
-  // runner后被依赖对象赋值为响应式对象
-  expect(dummy).toBe(2);
-
-  // 猜测,这样做的意义
-  // 在整个事件结束后调用runner,赋值依赖对象,而不是每次update都修改
-  // 减少赋值的次数? 可能在后续dom操作更方便调用(钩子?runner时去更新dom?)
-  // 或者单纯节省性能?实现nexttrick?
-});
-
-// 调用stop后,被依赖的对象更新后,有依赖的响应式对象停止更新(unRef?)
-it("stop reactive  ", () => {
-  let dummy;
-  const obj = reactive({ prop: 10 });
-  const runner = effect(() => {
-    dummy = obj.prop;
+  // 调用stop后,被依赖的对象更新后,有依赖的响应式对象停止更新(unRef?)
+  it("stop reactive  ", () => {
+    let dummy;
+    const obj = reactive({ prop: 10 });
+    const runner = effect(() => {
+      dummy = obj.prop;
+    });
+    obj.prop = 2;
+    expect(dummy).toBe(2);
+    stop(runner);
+    // obj.prop = 3;
+    // set , get 此时又调用了get,又收集了一次依赖,则stop失效
+    // 新增shouldTrack, 仅当第一次effect.run时(也就是new reactiveEffect时才)为true
+    // 为false时不收集依赖
+    // obj.prop = obj.prop + 1;
+    obj.prop = 3;
+    expect(dummy).toBe(2);
+    // 调用runner后,正常update
+    runner();
+    expect(dummy).toBe(3);
   });
-  obj.prop = 2;
-  expect(dummy).toBe(2);
-  stop(runner);
-  // obj.prop = 3;
-  // set , get 此时又调用了get,又收集了一次依赖,则stop失效
-  // 新增shouldTrack, 仅当第一次effect.run时(也就是new reactiveEffect时才)为true
-  // 为false时不收集依赖
-  // obj.prop = obj.prop + 1;
-  obj.prop = 3
-  expect(dummy).toBe(2);
-  // 调用runner后,正常update
-  runner();
-  expect(dummy).toBe(3);
-});
 
-it("target map once", () => {
-  let dummy;
-  let dummy2;
-  const obj = reactive({ prop: 10 });
-  const runner = effect(() => {
-    dummy = obj.prop + 1;
+  it("target map once", () => {
+    let dummy;
+    let dummy2;
+    const obj = reactive({ prop: 10 });
+    const runner = effect(() => {
+      dummy = obj.prop + 1;
+    });
+    const runner2 = effect(() => {
+      dummy2 = obj.prop + 10;
+    });
+    obj.prop = 12;
+    expect(dummy).toBe(13);
+    expect(dummy2).toBe(22);
+    stop(runner2);
+
+    obj.prop = 13;
+    expect(dummy).toBe(14);
+    expect(dummy2).toBe(22);
   });
-  const runner2 = effect(() => {
-    dummy2 = obj.prop + 10;
+
+  // 允许传入一个stop时执行的回调函数
+  it("onStop ", () => {
+    const obj = reactive({ foo: 1 });
+    const onStop = jest.fn(() => {});
+    let dummy;
+    const runner = effect(
+      () => {
+        dummy = obj.foo;
+      },
+      { onStop }
+    );
+    stop(runner);
+    expect(onStop).toBeCalledTimes(1);
   });
-  obj.prop = 12;
-  expect(dummy).toBe(13);
-  expect(dummy2).toBe(22);
-  stop(runner2);
-
-  obj.prop = 13;
-  expect(dummy).toBe(14);
-  expect(dummy2).toBe(22);
-});
-
-// 允许传入一个stop时执行的回调函数
-it("onStop ", () => {
-  const obj = reactive({ foo: 1 });
-  const onStop = jest.fn(() => {});
-  let dummy;
-  const runner = effect(
-    () => {
-      dummy = obj.foo;
-    },
-    { onStop }
-  );
-  stop(runner);
-  expect(onStop).toBeCalledTimes(1);
 });

@@ -4,25 +4,34 @@ import {
   shallowReadonlyHandlers,
 } from "./baseHandlers";
 
+export const reactiveMap = new WeakMap();
+export const readonlyMap = new WeakMap();
+export const shallowReadonlyMap = new WeakMap();
+
 export const enum ReactiveFlags {
   IS_REACTIVE = "__v_isReactive",
   IS_READONLY = "__v_isReadonly",
 }
 
 export function reactive(raw): any {
-  return createReactiveObject(raw, mutableHandlers);
+  return createReactiveObject(raw, reactiveMap, mutableHandlers);
 }
 
 export function readonly(raw) {
-  return createReactiveObject(raw, readonlyHandlers);
+  return createReactiveObject(raw, readonlyMap, readonlyHandlers);
 }
 
 export function shallowReadonly(raw) {
-  return createReactiveObject(raw, shallowReadonlyHandlers);
+  return createReactiveObject(raw, shallowReadonlyMap, shallowReadonlyHandlers);
 }
 
-function createReactiveObject(raw: any, baseHandlers) {
-  return new Proxy(raw, baseHandlers);
+function createReactiveObject(target, proxyMap, baseHandlers) {
+  // 如果命中缓存 就直接返回(优化 深度递归reactive时也不会导致多次new和引用问题)
+  const existingProxy = proxyMap.get(target);
+  if (existingProxy) return existingProxy;
+  const proxy = new Proxy(target, baseHandlers);
+  proxyMap.set(target, proxy);
+  return proxy;
 }
 
 export function isReactive(value) {

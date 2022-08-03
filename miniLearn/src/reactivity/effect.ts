@@ -1,10 +1,10 @@
 import { extend } from "../shared";
 
-let activeEffect;
+let activeEffect: ReactiveEffect;
 let shouldTrack;
 export class ReactiveEffect {
   private _fn: any;
-  deps = [];
+  deps: Array<any> = [];
   // 当前effect活跃状态
   active = true;
   onStop?: () => void;
@@ -44,7 +44,7 @@ function cleanupEffect(effect) {
 }
 
 // 收集依赖
-const targetMap = new Map();
+const targetMap = new WeakMap();
 export function track(target, key) {
   if (!isTracking()) return;
   // target -> key -> dep

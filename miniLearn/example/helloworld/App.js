@@ -1,3 +1,5 @@
+import { h } from "../../lib/my-vue-study.esm.js";
+
 export const App = {
   // <template>xxxx</template>
   //暂时用render

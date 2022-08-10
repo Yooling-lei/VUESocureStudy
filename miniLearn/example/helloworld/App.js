@@ -4,7 +4,15 @@ export const App = {
   // <template>xxxx</template>
   //暂时用render
   render() {
-    return h("div", "hi, " + this.msg);
+    // string类型
+    // return h("div", { id: "root", class: ["red", "hard"] }, "hi, " + this.msg);
+    // Array类型
+    return h("div", { id: "root", class: ["red", "hard"] }, [
+      h("p", { class: "red" }, "hi"),
+      h("p", { class: "red" }, "hi red"),
+      h("p", { class: "blue" }, "hi blue"),
+      "mini-vue",
+    ]);
   },
 
   setup() {

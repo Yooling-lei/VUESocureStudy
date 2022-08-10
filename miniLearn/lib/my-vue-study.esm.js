@@ -2,10 +2,27 @@ const isObject = (val) => {
     return val !== null && typeof val === "object";
 };
 
+const publicPropertiesMap = {
+    $el: (i) => i.vnode.el,
+};
+const publicInstanceProxyHandlers = {
+    get({ _: instance }, key) {
+        // setupState
+        const { setupState } = instance;
+        if (key in setupState) {
+            return setupState[key];
+        }
+        const publicGetter = publicPropertiesMap[key];
+        if (publicGetter)
+            return publicGetter(instance);
+    },
+};
+
 function createComponentInstance(vnode) {
     const component = {
         vnode,
         type: vnode.type,
+        setupState: {},
     };
     return component;
 }
@@ -18,6 +35,9 @@ function setupComponent(instance) {
 }
 function setupStatefulComponent(instance) {
     const Component = instance.type;
+    //ctx
+    // 实例化instance的proxy对象
+    instance.proxy = new Proxy({ _: instance }, publicInstanceProxyHandlers);
     const { setup } = Component;
     if (setup) {
         // function:render(), Object:appContext
@@ -70,12 +90,13 @@ function mountComponent(vnode, container) {
     // 执行component的setup() 并挂载到instance
     setupComponent(instance);
     // 执行component的render(),渲染子节点
-    setupRenderEffect(instance, container);
+    setupRenderEffect(instance, vnode, container);
 }
 /** 挂载dom element */
 function mountElement(vnode, container) {
+    // vnode -> element -> div
     // 创建dom
-    const el = document.createElement(vnode.type);
+    const el = (vnode.el = document.createElement(vnode.type));
     // children
     // string array
     const { children } = vnode;
@@ -99,11 +120,15 @@ function mountChildren(vnode, container) {
         patch(v, container);
     });
 }
-function setupRenderEffect(instance, container) {
-    const subTree = instance.render();
+function setupRenderEffect(instance, vnode, container) {
+    const { proxy } = instance;
+    // render()时this绑定实例的proxy对象
+    const subTree = instance.render.call(proxy);
     // vnode -> patch
     // vnode -> element -> mountElement
     patch(subTree, container);
+    // element mounted =>
+    vnode.el = subTree.el;
 }
 
 function createVNode(type, props, children) {
@@ -111,6 +136,7 @@ function createVNode(type, props, children) {
         type,
         props,
         children,
+        el: null,
     };
     return vnode;
 }

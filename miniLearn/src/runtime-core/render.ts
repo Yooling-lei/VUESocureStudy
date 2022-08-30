@@ -30,12 +30,12 @@ function processComponent(vnode, container) {
 }
 
 /** 挂载vue component */
-function mountComponent(vnode, container) {
-  const instance = createComponentInstance(vnode);
+function mountComponent(initialVNode, container) {
+  const instance = createComponentInstance(initialVNode);
   // 执行component的setup() 并挂载到instance
   setupComponent(instance);
   // 执行component的render(),渲染子节点
-  setupRenderEffect(instance, vnode, container);
+  setupRenderEffect(instance, initialVNode, container);
 }
 
 /** 挂载dom element */

@@ -4,7 +4,20 @@ window.self = null;
 
 const test = {
   render() {
-    return h("div", { id: "root" }, "sub component");
+    return h(
+      "div",
+      {
+        id: "root",
+        class: ["red"],
+        onClick() {
+          console.log("clicked");
+        },
+        onMousedown() {
+          console.log("mouseDown");
+        },
+      },
+      "sub component"
+    );
   },
   isTest: true,
   setup() {

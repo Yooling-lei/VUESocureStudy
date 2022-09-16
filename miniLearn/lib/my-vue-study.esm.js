@@ -1,7 +1,3 @@
-const isObject = (val) => {
-    return val !== null && typeof val === "object";
-};
-
 const publicPropertiesMap = {
     $el: (i) => i.vnode.el,
 };
@@ -64,12 +60,15 @@ function render(vnode, container) {
     patch(vnode, container);
 }
 function patch(vnode, container) {
-    // TODO: 判断类型:element类型,component类型
+    // shapeFlags
+    // 用于标识 vnode 类型
+    // element类型,component类型
+    const { shapeFlag } = vnode;
     // 若为element 应该处理element
-    if (typeof vnode.type === "string") {
+    if (shapeFlag & 1 /* ShapeFlags.ELEMENT */) {
         processElement(vnode, container);
     }
-    else if (isObject(vnode.type)) {
+    else if (shapeFlag & 2 /* ShapeFlags.STATEFUL_COMPONENT */) {
         // 处理组件
         processComponent(vnode, container);
     }
@@ -99,18 +98,30 @@ function mountElement(vnode, container) {
     const el = (vnode.el = document.createElement(vnode.type));
     // children
     // string array
-    const { children } = vnode;
-    if (typeof children === "string") {
+    const { children, shapeFlag } = vnode;
+    // children类型
+    if (shapeFlag & 4 /* ShapeFlags.TEXT_CHILDREN */) {
+        // text_children
         el.textContent = children;
     }
-    else if (Array.isArray(children)) {
+    else if (shapeFlag & shapeFlag.ARRAY_CHILDREN) {
+        // array_children
         mountChildren(vnode, el);
     }
     // props object
     const { props } = vnode;
     for (const key in props) {
         const val = props[key];
-        el.setAttribute(key, val);
+        // 注册事件
+        // on + Event name
+        const isOn = (key) => /^on[A-Z]/.test(key);
+        if (isOn(key)) {
+            const event = key.slice(2).toLowerCase();
+            el.addEventListener(event, val);
+        }
+        else {
+            el.setAttribute(key, val);
+        }
     }
     container.append(el);
 }
@@ -136,9 +147,22 @@ function createVNode(type, props, children) {
         type,
         props,
         children,
+        shapeFlag: getShapeFlag(type),
         el: null,
     };
+    // children
+    if (typeof children === "string") {
+        vnode.shapeFlag = vnode.shapeFlag | 4 /* ShapeFlags.TEXT_CHILDREN */;
+    }
+    else if (Array.isArray(children)) {
+        vnode.shapeFlag = vnode.shapeFlag | 8 /* ShapeFlags.ARRAY_CHILDREN */;
+    }
     return vnode;
+}
+function getShapeFlag(type) {
+    return typeof type === "string"
+        ? 1 /* ShapeFlags.ELEMENT */
+        : 2 /* ShapeFlags.STATEFUL_COMPONENT */;
 }
 
 function createApp(rootComponent) {

@@ -1,4 +1,5 @@
 import { h } from "../../lib/my-vue-study.esm.js";
+import { Foo } from "./Foo.js";
 
 window.self = null;
 
@@ -16,21 +17,22 @@ const test = {
           console.log("mouseDown");
         },
       },
-      "sub component"
+      [h("div", {}, "hi," + this.letMeSee), h(Foo, { count: 1 })]
     );
   },
   isTest: true,
   setup() {
-    return {};
+    return { letMeSee: "nooooo!" };
   },
 };
 
 export const App = {
   // <template>xxxx</template>
   //暂时用render
+  name: "App",
   render() {
     window.self = this;
-    return h(test, {}, "fff");
+    return h(test, {});
 
     // // string类型
     // return h(

@@ -54,7 +54,7 @@ function mountElement(vnode: any, container: any) {
   if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
     // text_children
     el.textContent = children;
-  } else if (shapeFlag & shapeFlag.ARRAY_CHILDREN) {
+  } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
     // array_children
     mountChildren(vnode, el);
   }

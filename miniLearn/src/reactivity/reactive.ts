@@ -1,3 +1,4 @@
+import { isObject } from "../shared/index";
 import {
   mutableHandlers,
   readonlyHandlers,
@@ -26,6 +27,11 @@ export function shallowReadonly(raw) {
 }
 
 function createReactiveObject(target, proxyMap, baseHandlers) {
+  if (!isObject(target)) {
+    console.warn(`target is not a obj`);
+    return target;
+  }
+
   // 如果命中缓存 就直接返回(优化 深度递归reactive时也不会导致多次new和引用问题)
   const existingProxy = proxyMap.get(target);
   if (existingProxy) return existingProxy;

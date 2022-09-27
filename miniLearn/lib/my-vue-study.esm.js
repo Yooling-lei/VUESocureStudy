@@ -122,6 +122,7 @@ function initProps(instance, rawProps) {
 
 const publicPropertiesMap = {
     $el: (i) => i.vnode.el,
+    $slots: (i) => i.slots,
 };
 const publicInstanceProxyHandlers = {
     get({ _: instance }, key) {
@@ -140,21 +141,39 @@ const publicInstanceProxyHandlers = {
     },
 };
 
+function initSlots(instance, children) {
+    const { vnode } = instance;
+    if (vnode.shapeFlag & 16 /* ShapeFlags.SLOT_CHILDREN */) {
+        //  instance.slots = Array.isArray(children) ? children : [children];
+        // 具名=> Object
+        normalizeObjectSlots(children, instance.slots);
+    }
+}
+function normalizeObjectSlots(children, slots) {
+    for (const key in children) {
+        const value = children[key];
+        slots[key] = (props) => normalizeSlotValue(value(props));
+    }
+}
+function normalizeSlotValue(value) {
+    return Array.isArray(value) ? value : [value];
+}
+
 function createComponentInstance(vnode) {
     const component = {
         vnode,
         type: vnode.type,
         setupState: {},
         props: {},
+        slots: {},
         emit: () => { },
     };
     component.emit = emit.bind(null, component);
     return component;
 }
 function setupComponent(instance) {
-    // TODO:
-    // initSlots();
     initProps(instance, instance.vnode.props);
+    initSlots(instance, instance.vnode.children);
     // 初始化一个有状态的组件
     setupStatefulComponent(instance);
 }
@@ -289,6 +308,12 @@ function createVNode(type, props, children) {
     else if (Array.isArray(children)) {
         vnode.shapeFlag = vnode.shapeFlag | 8 /* ShapeFlags.ARRAY_CHILDREN */;
     }
+    // slots children: 组件 + children Object
+    if (vnode.shapeFlag & 2 /* ShapeFlags.STATEFUL_COMPONENT */) {
+        if (typeof children === "object") {
+            vnode.shapeFlag |= 16 /* ShapeFlags.SLOT_CHILDREN */;
+        }
+    }
     return vnode;
 }
 function getShapeFlag(type) {
@@ -314,4 +339,13 @@ function h(type, props, children) {
     return createVNode(type, props, children);
 }
 
-export { createApp, h };
+function renderSlots(slots, name, props) {
+    const slot = slots[name];
+    if (slot) {
+        if (typeof slot === "function") {
+            return createVNode("div", {}, slot(props));
+        }
+    }
+}
+
+export { createApp, h, renderSlots };

@@ -5,6 +5,7 @@ window.self = null;
 
 const test = {
   render() {
+    let count = 1;
     return h(
       "div",
       {
@@ -17,7 +18,18 @@ const test = {
           console.log("mouseDown");
         },
       },
-      [h("div", {}, "hi," + this.letMeSee), h(Foo, { count: 1 })]
+      [
+        h("div", {}, "hi," + this.letMeSee),
+        h(Foo, {
+          count: count,
+          onAdd(a, b) {
+            console.log("onAdd", a, b);
+          },
+          onAddFoo() {
+            console.log("onAddFoo");
+          },
+        }),
+      ]
     );
   },
   isTest: true,

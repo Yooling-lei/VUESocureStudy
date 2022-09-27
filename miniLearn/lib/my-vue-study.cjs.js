@@ -6,6 +6,19 @@ const extend = Object.assign;
 const isObject = (val) => {
     return val !== null && typeof val === "object";
 };
+// 首字母大写
+// -小写,变大写
+const camelize = (str) => {
+    return str.replace(/-(\w)/g, (_, c) => {
+        return c ? c.toUpperCase() : "";
+    });
+};
+const capitalize = (str) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+};
+const toHandlerKey = (str) => {
+    return str ? "on" + capitalize(str) : "";
+};
 
 // 收集依赖
 const targetMap = new WeakMap();
@@ -98,6 +111,15 @@ function createReactiveObject(target, proxyMap, baseHandlers) {
     return proxy;
 }
 
+function emit(instance, event, ...args) {
+    console.log("emit....", event);
+    // instance.props => event对应的回调 onEvent
+    const { props } = instance;
+    const handlerName = toHandlerKey(camelize(event));
+    const handler = props[handlerName];
+    handler === null || handler === void 0 ? void 0 : handler(...args);
+}
+
 function initProps(instance, rawProps) {
     instance.props = rawProps || {};
 }
@@ -128,7 +150,9 @@ function createComponentInstance(vnode) {
         type: vnode.type,
         setupState: {},
         props: {},
+        emit: () => { },
     };
+    component.emit = emit.bind(null, component);
     return component;
 }
 function setupComponent(instance) {
@@ -146,7 +170,10 @@ function setupStatefulComponent(instance) {
     const { setup } = Component;
     if (setup) {
         // function:render(), Object:appContext
-        const setupResult = setup(shallowReadonly(instance.props));
+        // 第二个参数 Context
+        const setupResult = setup(shallowReadonly(instance.props), {
+            emit: instance.emit,
+        });
         handleSetupResult(instance, setupResult);
     }
 }

@@ -1,4 +1,4 @@
-import { h } from "../../lib/my-vue-study.esm.js";
+import { h, createTextVNode } from "../../lib/my-vue-study.esm.js";
 import { Foo } from "./Foo.js";
 
 export const App = {
@@ -21,6 +21,7 @@ export const App = {
         header: ({ age }) => [
           h("p", {}, "I am header" + age),
           h("p", {}, "sub-header"),
+          createTextVNode("你好呀"),
         ],
         footer: () => h("p", {}, "i am footer"),
       }

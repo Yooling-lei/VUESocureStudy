@@ -1,6 +1,6 @@
 import { ShapeFlags } from "../shared/shapeFlags";
 import { createComponentInstance, setupComponent } from "./component";
-import { Fragment } from "./vnode";
+import { Fragment, Text } from "./vnode";
 
 export function render(vnode, container) {
   // patch
@@ -17,7 +17,10 @@ function patch(vnode, container) {
       // Fragment -> 只渲染 children (用来处理Template 没有顶部节点,或者处理slot下数组)
       processFragment(vnode, container);
       break;
-
+    case Text:
+      // 直接渲染文本
+      processText(vnode, container);
+      break;
     default:
       if (shapeFlag & ShapeFlags.ELEMENT) {
         // 若为element 应该处理element
@@ -32,6 +35,12 @@ function patch(vnode, container) {
 
 function processFragment(vnode: any, container: any) {
   mountChildren(vnode, container);
+}
+
+function processText(vnode: any, container: any) {
+  const { children } = vnode;
+  const textNode = (vnode.el = document.createTextNode(children));
+  container.append(textNode);
 }
 
 /** 处理dom element */

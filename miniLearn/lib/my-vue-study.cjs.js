@@ -210,6 +210,7 @@ function finishComponentSetup(instance) {
 }
 
 const Fragment = Symbol("Fragment");
+const Text = Symbol("Text");
 function createVNode(type, props, children) {
     const vnode = {
         type,
@@ -233,6 +234,9 @@ function createVNode(type, props, children) {
     }
     return vnode;
 }
+function createTextVNode(text) {
+    return createVNode(Text, {}, text);
+}
 function getShapeFlag(type) {
     return typeof type === "string"
         ? 1 /* ShapeFlags.ELEMENT */
@@ -253,6 +257,10 @@ function patch(vnode, container) {
             // Fragment -> 只渲染 children (用来处理Template 没有顶部节点,或者处理slot下数组)
             processFragment(vnode, container);
             break;
+        case Text:
+            // 直接渲染文本
+            processText(vnode, container);
+            break;
         default:
             if (shapeFlag & 1 /* ShapeFlags.ELEMENT */) {
                 // 若为element 应该处理element
@@ -267,6 +275,11 @@ function patch(vnode, container) {
 }
 function processFragment(vnode, container) {
     mountChildren(vnode, container);
+}
+function processText(vnode, container) {
+    const { children } = vnode;
+    const textNode = (vnode.el = document.createTextNode(children));
+    container.append(textNode);
 }
 /** 处理dom element */
 function processElement(vnode, container) {
@@ -364,5 +377,6 @@ function renderSlots(slots, name, props) {
 }
 
 exports.createApp = createApp;
+exports.createTextVNode = createTextVNode;
 exports.h = h;
 exports.renderSlots = renderSlots;

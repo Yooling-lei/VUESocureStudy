@@ -3,6 +3,7 @@ import { h, renderSlots } from "../../lib/my-vue-study.esm.js";
 export const Foo = {
   setup() {},
   render() {
+    console.log("=========>", this);
     const foo = h("p", {}, "foo");
     // foo.vnode.children
     // 具名:?
@@ -13,8 +14,8 @@ export const Foo = {
     // Object=>Object<Func>
     const age = 18;
     return h("div", {}, [
-      foo,
       renderSlots(this.$slots, "header", { age: age }),
+      foo,
       renderSlots(this.$slots, "footer"),
     ]);
   },

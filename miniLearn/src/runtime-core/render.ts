@@ -1,6 +1,6 @@
-import { isObject } from "../shared/index";
 import { ShapeFlags } from "../shared/shapeFlags";
 import { createComponentInstance, setupComponent } from "./component";
+import { Fragment } from "./vnode";
 
 export function render(vnode, container) {
   // patch
@@ -11,14 +11,27 @@ function patch(vnode, container) {
   // shapeFlags
   // 用于标识 vnode 类型
   // element类型,component类型
-  const { shapeFlag } = vnode;
-  // 若为element 应该处理element
-  if (shapeFlag & ShapeFlags.ELEMENT) {
-    processElement(vnode, container);
-  } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
-    // 处理组件
-    processComponent(vnode, container);
+  const { type, shapeFlag } = vnode;
+  switch (type) {
+    case Fragment:
+      // Fragment -> 只渲染 children (用来处理Template 没有顶部节点,或者处理slot下数组)
+      processFragment(vnode, container);
+      break;
+
+    default:
+      if (shapeFlag & ShapeFlags.ELEMENT) {
+        // 若为element 应该处理element
+        processElement(vnode, container);
+      } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+        // 处理组件
+        processComponent(vnode, container);
+      }
+      break;
   }
+}
+
+function processFragment(vnode: any, container: any) {
+  mountChildren(vnode, container);
 }
 
 /** 处理dom element */

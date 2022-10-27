@@ -3,7 +3,6 @@ import { ShapeFlags } from "../shared/shapeFlags";
 export function initSlots(instance, children) {
   const { vnode } = instance;
   if (vnode.shapeFlag & ShapeFlags.SLOT_CHILDREN) {
-    //  instance.slots = Array.isArray(children) ? children : [children];
     // 具名=> Object
     normalizeObjectSlots(children, instance.slots);
   }

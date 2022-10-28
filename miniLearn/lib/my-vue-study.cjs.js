@@ -187,11 +187,14 @@ function setupStatefulComponent(instance) {
     instance.proxy = new Proxy({ _: instance }, publicInstanceProxyHandlers);
     const { setup } = Component;
     if (setup) {
+        // setup()时可以获取currentInstance
+        setCurrentInstance(instance);
         // function:render(), Object:appContext
         // 第二个参数 Context
         const setupResult = setup(shallowReadonly(instance.props), {
             emit: instance.emit,
         });
+        currentInstance = null;
         handleSetupResult(instance, setupResult);
     }
 }
@@ -207,6 +210,13 @@ function finishComponentSetup(instance) {
     //if (Component.render) {
     instance.render = Component.render;
     //}
+}
+let currentInstance = null;
+function getCurrentInstance() {
+    return currentInstance;
+}
+function setCurrentInstance(instance) {
+    currentInstance = instance;
 }
 
 const Fragment = Symbol("Fragment");
@@ -378,5 +388,6 @@ function renderSlots(slots, name, props) {
 
 exports.createApp = createApp;
 exports.createTextVNode = createTextVNode;
+exports.getCurrentInstance = getCurrentInstance;
 exports.h = h;
 exports.renderSlots = renderSlots;

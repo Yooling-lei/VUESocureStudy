@@ -1,4 +1,4 @@
-import { hasChanged, isObject } from "../shared";
+import { hasChanged, isObject } from "../shared/index";
 import { isTracking, tarckEffects, triggerEffects } from "./effect";
 import { reactive } from "./reactive";
 
@@ -53,7 +53,6 @@ export function isRef(ref) {
 }
 
 export function unRef(ref) {
-  // 
   return isRef(ref) ? ref.value : ref;
 }
 

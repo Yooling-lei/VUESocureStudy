@@ -24,6 +24,7 @@ export const App = {
 
     return {
       count,
+      props,
       onClick,
       onChangePropsDemo1,
       onChangePropsDemo2,

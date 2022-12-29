@@ -1,4 +1,5 @@
 import { effect } from "../reactivity/effect";
+import { EMPTY_OBJ } from "../shared";
 import { ShapeFlags } from "../shared/shapeFlags";
 import { createComponentInstance, setupComponent } from "./component";
 import { createAppApi } from "./createApp";
@@ -64,22 +65,34 @@ export function createRenderer(options) {
     }
   }
 
+  /** 更新element */
   function patchElement(n1, n2, container) {
     console.log("....PatchElement");
     console.log("n1", n2);
     console.log("n1", n2);
 
-    const oldProps = n1.props || {};
-    const newProps = n2.props || {};
-    patchProps(oldProps, newProps);
+    const oldProps = n1.props || EMPTY_OBJ;
+    const newProps = n2.props || EMPTY_OBJ;
+
+    const el = (n2.el = n1.el);
+    patchProps(el, oldProps, newProps);
   }
 
-  function patchProps(oldProps, newProps) {
+  function patchProps(el, oldProps, newProps) {
+    if (oldProps === newProps) return;
+
     for (const key in newProps) {
       const prevProp = oldProps[key];
       const nextProp = newProps[key];
-
       if (prevProp !== nextProp) {
+        // 更新
+        hostPatchProp(el, key, prevProp, nextProp);
+      }
+    }
+    if (oldProps === EMPTY_OBJ) return;
+    for (const key in oldProps) {
+      if (!(key in newProps)) {
+        hostPatchProp(el, key, oldProps[key], null);
       }
     }
   }
@@ -101,6 +114,8 @@ export function createRenderer(options) {
       // array_children
       mountChildren(vnode, el, parentComponent);
     }
+    console.log("mountElemnt...vnode=>", vnode);
+
     // props object
     const { props } = vnode;
     for (const key in props) {
@@ -108,14 +123,7 @@ export function createRenderer(options) {
       // 注册事件
       // on + Event name
       // const isOn = (key: string) => /^on[A-Z]/.test(key);
-
-      // if (isOn(key)) {
-      //   const event = key.slice(2).toLowerCase();
-      //   el.addEventListener(event, val);
-      // } else {
-      //   el.setAttribute(key, val);
-      // }
-      hostPatchProp(el, key, val);
+      hostPatchProp(el, key, null, val);
     }
     // container.append(el);
     hostInsert(el, container);

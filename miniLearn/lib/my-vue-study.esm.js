@@ -49,6 +49,7 @@ const extend = Object.assign;
 const isObject = (val) => {
     return val !== null && typeof val === "object";
 };
+const EMPTY_OBJ = {};
 const hasChanged = (newVal, oldVal) => !Object.is(newVal, oldVal);
 // 首字母大写
 // -小写,变大写
@@ -459,18 +460,33 @@ function createRenderer(options) {
             patchElement(n1, n2);
         }
     }
+    /** 更新element */
     function patchElement(n1, n2, container) {
         console.log("....PatchElement");
         console.log("n1", n2);
         console.log("n1", n2);
-        const oldProps = n1.props || {};
-        const newProps = n2.props || {};
-        patchProps(oldProps, newProps);
+        const oldProps = n1.props || EMPTY_OBJ;
+        const newProps = n2.props || EMPTY_OBJ;
+        const el = (n2.el = n1.el);
+        patchProps(el, oldProps, newProps);
     }
-    function patchProps(oldProps, newProps) {
+    function patchProps(el, oldProps, newProps) {
+        if (oldProps === newProps)
+            return;
         for (const key in newProps) {
-            oldProps[key];
-            newProps[key];
+            const prevProp = oldProps[key];
+            const nextProp = newProps[key];
+            if (prevProp !== nextProp) {
+                // 更新
+                hostPatchProp(el, key, prevProp, nextProp);
+            }
+        }
+        if (oldProps === EMPTY_OBJ)
+            return;
+        for (const key in oldProps) {
+            if (!(key in newProps)) {
+                hostPatchProp(el, key, oldProps[key], null);
+            }
         }
     }
     /** 挂载dom element */
@@ -491,6 +507,7 @@ function createRenderer(options) {
             // array_children
             mountChildren(vnode, el, parentComponent);
         }
+        console.log("mountElemnt...vnode=>", vnode);
         // props object
         const { props } = vnode;
         for (const key in props) {
@@ -498,13 +515,7 @@ function createRenderer(options) {
             // 注册事件
             // on + Event name
             // const isOn = (key: string) => /^on[A-Z]/.test(key);
-            // if (isOn(key)) {
-            //   const event = key.slice(2).toLowerCase();
-            //   el.addEventListener(event, val);
-            // } else {
-            //   el.setAttribute(key, val);
-            // }
-            hostPatchProp(el, key, val);
+            hostPatchProp(el, key, null, val);
         }
         // container.append(el);
         hostInsert(el, container);
@@ -559,14 +570,19 @@ function createRenderer(options) {
 function createElement(type) {
     return document.createElement(type);
 }
-function patchProp(el, key, val) {
+function patchProp(el, key, preVal, nextVal) {
     const isOn = (key) => /^on[A-Z]/.test(key);
     if (isOn(key)) {
         const event = key.slice(2).toLowerCase();
-        el.addEventListener(event, val);
+        el.addEventListener(event, nextVal);
     }
     else {
-        el.setAttribute(key, val);
+        if (nextVal === undefined || nextVal === null) {
+            el.removeAttribute(key);
+        }
+        else {
+            el.setAttribute(key, nextVal);
+        }
     }
 }
 function insert(el, container) {

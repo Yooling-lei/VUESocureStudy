@@ -4,6 +4,8 @@ export const isObject = (val) => {
   return val !== null && typeof val === "object";
 };
 
+export const EMPTY_OBJ = {};
+
 export const hasChanged = (newVal, oldVal) => !Object.is(newVal, oldVal);
 
 // 首字母大写

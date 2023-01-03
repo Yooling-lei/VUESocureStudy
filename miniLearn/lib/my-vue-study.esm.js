@@ -409,7 +409,7 @@ function createAppApi(render) {
 }
 
 function createRenderer(options) {
-    const { createElement: hostCreateElement, patchProp: hostPatchProp, insert: hostInsert, } = options;
+    const { createElement: hostCreateElement, patchProp: hostPatchProp, insert: hostInsert, remove: hostRemove, setElementText: hostSetElementText, } = options;
     function render(vnode, container) {
         // patch
         patch(null, vnode, container, null);
@@ -443,7 +443,7 @@ function createRenderer(options) {
         }
     }
     function processFragment(n1, n2, container, parentComponent) {
-        mountChildren(n2, container, parentComponent);
+        mountChildren(n2.children, container, parentComponent);
     }
     function processText(n1, n2, container) {
         const { children } = n2;
@@ -457,18 +457,49 @@ function createRenderer(options) {
             mountElement(n2, container, parentComponent);
         }
         else {
-            patchElement(n1, n2);
+            patchElement(n1, n2, container, parentComponent);
         }
     }
     /** 更新element */
-    function patchElement(n1, n2, container) {
+    function patchElement(n1, n2, container, parentComponent) {
         console.log("....PatchElement");
         console.log("n1", n2);
         console.log("n1", n2);
         const oldProps = n1.props || EMPTY_OBJ;
         const newProps = n2.props || EMPTY_OBJ;
         const el = (n2.el = n1.el);
+        patchChildren(n1, n2, el, parentComponent);
+        // 这个props指的是 elementProp(dom prop)
         patchProps(el, oldProps, newProps);
+    }
+    function patchChildren(n1, n2, container, parentComponent) {
+        const { shapeFlag: prevShapeFlag, children: prevChildren } = n1;
+        const { shapeFlag, children: nextChildren } = n2;
+        // text=>text Array=>text
+        if (shapeFlag & 4 /* ShapeFlags.TEXT_CHILDREN */) {
+            if (prevShapeFlag & 8 /* ShapeFlags.ARRAY_CHILDREN */) {
+                // array => text
+                // 1. 应该先删除el.children
+                unmountChildren(n1.children);
+            }
+            // 2. el.innerText = text
+            if (prevChildren !== nextChildren) {
+                hostSetElementText(container, nextChildren);
+            }
+        }
+        else {
+            // text => Array
+            if (prevShapeFlag & 4 /* ShapeFlags.TEXT_CHILDREN */) {
+                hostSetElementText(container, "");
+                mountChildren(nextChildren, container, parentComponent);
+            }
+        }
+    }
+    function unmountChildren(children) {
+        for (let i = 0; i < children.length; i++) {
+            const el = children[i].el;
+            hostRemove(el);
+        }
     }
     function patchProps(el, oldProps, newProps) {
         if (oldProps === newProps)
@@ -505,7 +536,7 @@ function createRenderer(options) {
         }
         else if (shapeFlag & 8 /* ShapeFlags.ARRAY_CHILDREN */) {
             // array_children
-            mountChildren(vnode, el, parentComponent);
+            mountChildren(vnode.children, el, parentComponent);
         }
         console.log("mountElemnt...vnode=>", vnode);
         // props object
@@ -534,8 +565,8 @@ function createRenderer(options) {
         setupRenderEffect(instance, initialVNode, container);
     }
     /** 递归渲染子节点 */
-    function mountChildren(vnode, container, parentComponent) {
-        vnode.children.forEach((v) => {
+    function mountChildren(children, container, parentComponent) {
+        children.forEach((v) => {
             patch(null, v, container, parentComponent);
         });
     }
@@ -588,10 +619,21 @@ function patchProp(el, key, preVal, nextVal) {
 function insert(el, container) {
     container.append(el);
 }
+function remove(child) {
+    const parent = child.parentNode;
+    if (parent) {
+        parent.removeChild(child);
+    }
+}
+function setElementText(el, text) {
+    el.textContent = text;
+}
 const render = createRenderer({
     createElement,
     patchProp,
     insert,
+    remove,
+    setElementText
 });
 function createApp(...args) {
     return render.createApp(...args);

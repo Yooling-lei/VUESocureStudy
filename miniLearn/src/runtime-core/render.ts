@@ -75,9 +75,9 @@ export function createRenderer(options) {
 
   /** 更新element */
   function patchElement(n1, n2, container, parentComponent, anchor) {
-    console.log("....PatchElement");
-    console.log("n1", n2);
-    console.log("n1", n2);
+    // console.log("....PatchElement");
+    // console.log("n1", n2);
+    // console.log("n1", n2);
 
     const oldProps = n1.props || EMPTY_OBJ;
     const newProps = n2.props || EMPTY_OBJ;
@@ -195,7 +195,58 @@ export function createRenderer(options) {
         i++;
       }
     } else {
-      // 乱序
+      // 中间对比
+      let s1 = i;
+      let s2 = i;
+
+      // 新节点的总数
+      const toBePatched = e2 - i + 1;
+      console.log("=========>toBePatched", toBePatched);
+
+      // 当前处理的数量
+      let patched = 0;
+
+      const keyToNewIndexMap = new Map();
+
+      for (let i = s2; i <= e2; i++) {
+        const nextChild = c2[i];
+        keyToNewIndexMap.set(nextChild.key, i);
+      }
+
+      for (let i = s1; i <= e1; i++) {
+        const prevChild = c1[i];
+
+        // 优化:
+        // 当旧简单数量大于新节点时,若新节点已被patch完,则其他节点都应删除
+        if (patched >= toBePatched) {
+          console.log("优化删除=============>");
+
+          hostRemove(prevChild.el);
+          continue;
+        }
+
+        let newIndex: number | undefined;
+
+        // 有key用map,没有key则循环
+        if (prevChild.key != null) {
+          newIndex = keyToNewIndexMap.get(prevChild.key);
+        } else {
+          for (let j = 0; j < e2; j++) {
+            if (isSameVnodeType(prevChild, c2[j])) {
+              newIndex = j;
+              break;
+            }
+          }
+        }
+        if (newIndex === undefined) {
+          hostRemove(prevChild.el);
+        } else {
+          patch(prevChild, c2[newIndex], container, parentComponent, null);
+          patched++;
+        }
+
+        // 判断这个老节点还是否存在
+      }
     }
   }
 

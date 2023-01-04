@@ -65,14 +65,61 @@ import { ref, h } from "../../lib/my-vue-study.esm.js";
 
 // 4-2: 右侧对比
 
+// const prevChildren = [
+//   h("p", { key: "A" }, "A"),
+//   h("p", { key: "B" }, "B"),
+//   h("p", { key: "C" }, "C"),
+//   h("p", { key: "D" }, "D"),
+// ];
+// const nextChildren = [h("p", { key: "C" }, "C"), h("p", { key: "D" }, "D")];
+// // i=0, e1=0, e2=-1
+
+// 5.乱序对比
+// 5.1
+// a,b,(c,d),f,g
+// a,b,(e,c),f,g
+
+// const prevChildren = [
+//   h("p", { key: "A" }, "A"),
+//   h("p", { key: "B" }, "B"),
+//   h("p", { key: "C", id: "c-prev" }, "C"),
+//   h("p", { key: "D" }, "D"),
+//   h("p", { key: "F" }, "F"),
+//   h("p", { key: "G" }, "G"),
+// ];
+
+// const nextChildren = [
+//   h("p", { key: "A" }, "A"),
+//   h("p", { key: "B" }, "B"),
+//   h("p", { key: "E" }, "E"),
+//   h("p", { key: "C", id: "c-next" }, "C"),
+//   h("p", { key: "F" }, "F"),
+//   h("p", { key: "G" }, "G"),
+// ];
+
+// 5.1.1
+// a,b,(c,e,d),f,g
+// a,b,(e,c),f,g
+// 中间部分,老的比新的多,则多出来的可以直接被删除(优化删除逻辑)
+
 const prevChildren = [
   h("p", { key: "A" }, "A"),
   h("p", { key: "B" }, "B"),
-  h("p", { key: "C" }, "C"),
+  h("p", { key: "C", id: "c-prev" }, "C"),
+  h("p", { key: "E" }, "E"),
   h("p", { key: "D" }, "D"),
+  h("p", { key: "F" }, "F"),
+  h("p", { key: "G" }, "G"),
 ];
-const nextChildren = [h("p", { key: "C" }, "C"), h("p", { key: "D" }, "D")];
-// i=0, e1=0, e2=-1
+
+const nextChildren = [
+  h("p", { key: "A" }, "A"),
+  h("p", { key: "B" }, "B"),
+  h("p", { key: "E" }, "E"),
+  h("p", { key: "C", id: "c-next" }, "C"),
+  h("p", { key: "F" }, "F"),
+  h("p", { key: "G" }, "G"),
+];
 
 export default {
   name: "TextToArray",

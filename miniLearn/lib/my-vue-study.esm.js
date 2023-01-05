@@ -571,18 +571,29 @@ function createRenderer(options) {
             let s2 = i;
             // 新节点的总数
             const toBePatched = e2 - i + 1;
-            console.log("=========>toBePatched", toBePatched);
             // 当前处理的数量
             let patched = 0;
+            // 新节点可以映射
             const keyToNewIndexMap = new Map();
+            // 新旧节点索引映射
+            const newIndexToOldIndexMap = new Array(toBePatched);
+            let moved = false;
+            let maxNewIndexSoFar = 0;
+            for (let i = 0; i < toBePatched; i++)
+                newIndexToOldIndexMap[i] = 0;
+            console.log("=========>toBePatched", toBePatched);
             for (let i = s2; i <= e2; i++) {
                 const nextChild = c2[i];
+                // 新节点 key:oldIndex
                 keyToNewIndexMap.set(nextChild.key, i);
             }
+            // for循环一遍老节点们
+            // 若老节点的 key 在新节点里面有,则说明存在在新节点, 将新旧序列建立映射关系
+            // 若没有,则删除了,调用hostRemove
             for (let i = s1; i <= e1; i++) {
                 const prevChild = c1[i];
                 // 优化:
-                // 当旧简单数量大于新节点时,若新节点已被patch完,则其他节点都应删除
+                // 当旧节点数量大于新节点时,若新节点已被patch完,则其他节点都应删除
                 if (patched >= toBePatched) {
                     console.log("优化删除=============>");
                     hostRemove(prevChild.el);
@@ -601,14 +612,73 @@ function createRenderer(options) {
                         }
                     }
                 }
+                // 如果旧节点没有在新的list里有索引(没了),删除
                 if (newIndex === undefined) {
                     hostRemove(prevChild.el);
                 }
                 else {
+                    // 优化,当新节点索引不是递增时,才可能需要移动
+                    // 比如 c,d,e => g,c,d,e  这时c,d,e全部递增,只用在c前插入g
+                    if (newIndex >= maxNewIndexSoFar) {
+                        maxNewIndexSoFar = newIndex;
+                    }
+                    else {
+                        moved = true;
+                    }
+                    // +1 避免为0
+                    newIndexToOldIndexMap[newIndex - s2] = i + 1;
                     patch(prevChild, c2[newIndex], container, parentComponent, null);
                     patched++;
                 }
-                // 判断这个老节点还是否存在
+            }
+            console.log("===>newIndexToOldIndexMap", newIndexToOldIndexMap);
+            // 优化: 怎么确定节点需要移动
+            const increasingNewIndexSequence = moved
+                ? getSequence(newIndexToOldIndexMap)
+                : [];
+            // const increasingNewIndexSequence = [3, 4];
+            // 最长递增序列的索引
+            console.log("========>toBePatched", toBePatched);
+            console.log("========>increasingNewIndexSequence", increasingNewIndexSequence);
+            // A,B,(C,D,E),F,G
+            // A,B,(E,C,D),F,G
+            //    [3,4,5]
+            //     C,D,E
+            //    [5,3,4] ===>
+            //     E,C,D
+            // A,B,E,C,D,F,G
+            //最长递增索引为 [3,4] , 在新的 E,C,D里索引为 [1,2]
+            //则应该是 C,D不动, E从原来的节点,移动到 递增序列之前
+            //这时从右遍历ToBePatched得出 哪个节点需要移动
+            let j = increasingNewIndexSequence.length - 1;
+            for (let i = toBePatched - 1; i >= 0; i--) {
+                // 循环ToBePatched ,2,1,0
+                // j:increasing: [1,2]
+                // 第一次 i=2, i == j[1]
+                // 也就是D节点,一开始就是固定序列,不用移动
+                // 第二次 i=1, C节点,固定序列,不用移动
+                // 第三次 i=0, e节点,j超出索引,需要移动
+                // 应该把e移动到c,也就是锚点索引为 i+ s2(左侧相同数) = 需要移动节点在全部新节点里的索引 +1 = 锚点索引
+                function getIndexs() {
+                    const nextIndex = i + s2;
+                    const nextChild = c2[nextIndex];
+                    const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1].el : null;
+                    return { nextChild, anchor };
+                }
+                if (newIndexToOldIndexMap[i] === 0) {
+                    const { nextChild, anchor } = getIndexs();
+                    patch(null, nextChild, container, parentComponent, anchor);
+                }
+                else if (!moved) {
+                    continue;
+                }
+                else if (j < 0 || i !== increasingNewIndexSequence[j]) {
+                    const { nextChild, anchor } = getIndexs();
+                    hostInsert(nextChild.el, container, anchor);
+                }
+                else {
+                    j--;
+                }
             }
         }
     }
@@ -713,6 +783,48 @@ function createRenderer(options) {
         });
     }
     return { createApp: createAppApi(render) };
+}
+function getSequence(arr) {
+    const p = arr.slice();
+    const result = [0];
+    let i, j, u, v, c;
+    const len = arr.length;
+    for (i = 0; i < len; i++) {
+        const arrI = arr[i];
+        if (arrI !== 0) {
+            j = result[result.length - 1];
+            if (arr[j] < arrI) {
+                p[i] = j;
+                result.push(i);
+                continue;
+            }
+            u = 0;
+            v = result.length - 1;
+            while (u < v) {
+                c = (u + v) >> 1;
+                if (arr[result[c]] < arrI) {
+                    u = c + 1;
+                }
+                else {
+                    v = c;
+                }
+            }
+            if (arrI < arr[result[u]]) {
+                if (u > 0) {
+                    p[i] = result[u - 1];
+                }
+                result[u] = i;
+            }
+        }
+    }
+    u = result.length;
+    v = result[u - 1];
+    while (u-- > 0) {
+        result[u] = v;
+        v = p[v];
+    }
+    console.log(result);
+    return result;
 }
 
 function createElement(type) {

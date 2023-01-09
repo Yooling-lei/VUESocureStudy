@@ -2,6 +2,7 @@ import { effect } from "../reactivity/effect";
 import { EMPTY_OBJ } from "../shared";
 import { ShapeFlags } from "../shared/shapeFlags";
 import { createComponentInstance, setupComponent } from "./component";
+import { shouldUpdateComponent } from "./componentUpdateUtils";
 import { createAppApi } from "./createApp";
 import { Fragment, Text } from "./vnode";
 
@@ -239,7 +240,7 @@ export function createRenderer(options) {
         if (prevChild.key != null) {
           newIndex = keyToNewIndexMap.get(prevChild.key);
         } else {
-          for (let j = 0; j < e2; j++) {
+          for (let j = 0; j <= e2; j++) {
             if (isSameVnodeType(prevChild, c2[j])) {
               newIndex = j;
               break;
@@ -380,13 +381,31 @@ export function createRenderer(options) {
 
   /** 处理vue component */
   function processComponent(n1, n2, container, parentComponent, anchor) {
-    // 挂载组件
-    mountComponent(n2, container, parentComponent, anchor);
+    if (!n1) {
+      // 挂载组件
+      mountComponent(n2, container, parentComponent, anchor);
+    } else {
+      updateComponent(n1, n2);
+    }
+  }
+
+  function updateComponent(n1, n2) {
+    const instance = (n2.component = n1.component);
+    instance.next = n2;
+    if (shouldUpdateComponent(n1, n2)) {
+      instance.update();
+    } else {
+      n2.el = n1.el;
+      instance.vnode = n2;
+    }
   }
 
   /** 挂载vue component */
   function mountComponent(initialVNode, container, parentComponent, anchor) {
-    const instance = createComponentInstance(initialVNode, parentComponent);
+    const instance = (initialVNode.component = createComponentInstance(
+      initialVNode,
+      parentComponent
+    ));
     // 执行component的setup() 并挂载到instance
     setupComponent(instance);
     // 执行component的render(),渲染子节点
@@ -404,7 +423,7 @@ export function createRenderer(options) {
     // 为了达到 reactive update => re render()
     // 1. 在执行render() 时, 应该由effect 包裹
     // 2. 初始化时走path,更新应该走更新
-    effect(() => {
+    instance.update = effect(() => {
       if (!instance.isMounted) {
         const { proxy } = instance;
         // render()时this绑定实例的proxy对象
@@ -418,7 +437,13 @@ export function createRenderer(options) {
         vnode.el = subTree.el;
         instance.isMounted = true;
       } else {
-        const { proxy } = instance;
+        // 更新Component
+        const { proxy, next, vnode } = instance;
+        if (next) {
+          next.el = vnode.el;
+          updateComponentPreRender(instance, next);
+        }
+
         const subTree = instance.render.call(proxy);
         const prevSubTree = instance.subTree;
 
@@ -428,6 +453,12 @@ export function createRenderer(options) {
     });
   }
   return { createApp: createAppApi(render) };
+}
+
+function updateComponentPreRender(instance, nextVNode) {
+  instance.next = null;
+  instance.vnode = nextVNode;
+  instance.props = nextVNode.props;
 }
 
 function getSequence(arr: number[]): number[] {

@@ -427,6 +427,33 @@ function createAppApi(render) {
     };
 }
 
+const queue = [];
+function queueJobs(job) {
+    // 假如有100次update,每次job都一样(vnode instance.update function是一样的)
+    // 调用100次queueJobs
+    // 则执行顺序为
+    // 100*mainTask => queue = [job]
+    // 100*microTask =>第一次 queue[0].() ,其他99次return
+    // mainTask
+    queuePush(job);
+    // microTask
+    queueFlush();
+}
+function queuePush(job) {
+    if (!queue.includes(job)) {
+        queue.push(job);
+    }
+}
+function queueFlush() {
+    Promise.resolve().then(() => {
+        let job;
+        while ((job = queue.shift())) {
+            console.log("run job");
+            job === null || job === void 0 ? void 0 : job();
+        }
+    });
+}
+
 function createRenderer(options) {
     const { createElement: hostCreateElement, patchProp: hostPatchProp, insert: hostInsert, remove: hostRemove, setElementText: hostSetElementText, } = options;
     function render(vnode, container) {
@@ -808,6 +835,7 @@ function createRenderer(options) {
                 instance.isMounted = true;
             }
             else {
+                console.log("update");
                 // 更新Component
                 const { proxy, next, vnode } = instance;
                 if (next) {
@@ -819,6 +847,11 @@ function createRenderer(options) {
                 instance.subTree = subTree;
                 patch(prevSubTree, subTree, container, instance, anchor);
             }
+        }, {
+            // 为了实现微任务更新
+            scheduler() {
+                queueJobs(instance.update);
+            },
         });
     }
     return { createApp: createAppApi(render) };

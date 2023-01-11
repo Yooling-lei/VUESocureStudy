@@ -42,6 +42,43 @@ function h(type, props, children) {
     return createVNode(type, props, children);
 }
 
+const queue = [];
+// 是否已经创建了开始微任务
+let isFlushPending = false;
+function nextTick(fn) {
+    return fn ? Promise.resolve().then(fn) : Promise.resolve();
+}
+function queueJobs(job) {
+    // 假如有100次update,每次job都一样(vnode instance.update function是一样的)
+    // 调用100次queueJobs
+    // 则执行顺序为
+    // 100*mainTask => queue = [job]
+    // 100*microTask =>第一次 queue[0].() ,其他99次return
+    // mainTask
+    queuePush(job);
+    // microTask
+    queueFlush();
+}
+function queuePush(job) {
+    if (!queue.includes(job)) {
+        queue.push(job);
+    }
+}
+function queueFlush() {
+    if (isFlushPending)
+        return;
+    isFlushPending = true;
+    nextTick(flushJobs);
+}
+function flushJobs() {
+    isFlushPending = false;
+    let job;
+    while ((job = queue.shift())) {
+        console.log("run job");
+        job === null || job === void 0 ? void 0 : job();
+    }
+}
+
 function renderSlots(slots, name, props) {
     const slot = slots[name];
     if (slot) {
@@ -427,33 +464,6 @@ function createAppApi(render) {
     };
 }
 
-const queue = [];
-function queueJobs(job) {
-    // 假如有100次update,每次job都一样(vnode instance.update function是一样的)
-    // 调用100次queueJobs
-    // 则执行顺序为
-    // 100*mainTask => queue = [job]
-    // 100*microTask =>第一次 queue[0].() ,其他99次return
-    // mainTask
-    queuePush(job);
-    // microTask
-    queueFlush();
-}
-function queuePush(job) {
-    if (!queue.includes(job)) {
-        queue.push(job);
-    }
-}
-function queueFlush() {
-    Promise.resolve().then(() => {
-        let job;
-        while ((job = queue.shift())) {
-            console.log("run job");
-            job === null || job === void 0 ? void 0 : job();
-        }
-    });
-}
-
 function createRenderer(options) {
     const { createElement: hostCreateElement, patchProp: hostPatchProp, insert: hostInsert, remove: hostRemove, setElementText: hostSetElementText, } = options;
     function render(vnode, container) {
@@ -835,7 +845,7 @@ function createRenderer(options) {
                 instance.isMounted = true;
             }
             else {
-                console.log("update");
+                console.log("really update");
                 // 更新Component
                 const { proxy, next, vnode } = instance;
                 if (next) {
@@ -850,6 +860,7 @@ function createRenderer(options) {
         }, {
             // 为了实现微任务更新
             scheduler() {
+                console.log("scheduler update");
                 queueJobs(instance.update);
             },
         });
@@ -1017,6 +1028,7 @@ exports.createTextVNode = createTextVNode;
 exports.getCurrentInstance = getCurrentInstance;
 exports.h = h;
 exports.inject = inject;
+exports.nextTick = nextTick;
 exports.provide = provide;
 exports.proxyRefs = proxyRefs;
 exports.ref = ref;

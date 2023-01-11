@@ -1,5 +1,10 @@
 // @ts-nocheck
-import { h, ref } from "../../lib/my-vue-study.esm.js";
+import {
+  h,
+  nextTick,
+  ref,
+  getCurrentInstance,
+} from "../../lib/my-vue-study.esm.js";
 
 export const App = {
   name: "App",
@@ -12,11 +17,15 @@ export const App = {
     const changeChildProps = () => {
       msg.value = "456";
     };
+    const instance = getCurrentInstance();
 
-    const changeCount = () => {
+    const changeCount = async () => {
       for (let i = 0; i < 100; i++) {
         count.value++;
       }
+      console.log(instance);
+      await nextTick();
+      console.log(instance);
     };
 
     return { msg, count, changeCount, changeChildProps };

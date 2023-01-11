@@ -439,7 +439,7 @@ export function createRenderer(options) {
           vnode.el = subTree.el;
           instance.isMounted = true;
         } else {
-          console.log("update");
+          console.log("really update");
           // 更新Component
           const { proxy, next, vnode } = instance;
           if (next) {
@@ -457,6 +457,8 @@ export function createRenderer(options) {
       {
         // 为了实现微任务更新
         scheduler() {
+          console.log("scheduler update");
+          
           queueJobs(instance.update);
         },
       }

@@ -3,6 +3,12 @@ export function transform(root, options) {
 
   const context = createTransformContext(root, options);
   traverseNode(root, context);
+  createRootCodegen(root);
+}
+
+// 根目录function生成
+function createRootCodegen(root: any) {
+  throw new Error("Function not implemented.");
 }
 
 function createTransformContext(root: any, options: any) {

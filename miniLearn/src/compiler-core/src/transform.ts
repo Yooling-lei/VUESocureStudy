@@ -1,4 +1,4 @@
-export function transform(root, options) {
+export function transform(root, options = {}) {
   // 1.遍历 深度优先
 
   const context = createTransformContext(root, options);
@@ -8,7 +8,7 @@ export function transform(root, options) {
 
 // 根目录function生成
 function createRootCodegen(root: any) {
-  throw new Error("Function not implemented.");
+  root.codegenNode = root.children[0];
 }
 
 function createTransformContext(root: any, options: any) {

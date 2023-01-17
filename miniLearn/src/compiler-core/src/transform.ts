@@ -32,7 +32,7 @@ function traverseNode(node: any, context) {
   if (nodeTransforms) {
     for (let i = 0; i < nodeTransforms.length; i++) {
       const transform = nodeTransforms[i];
-      transform?.(node);
+      transform?.(node, context);
     }
     switch (node.type) {
       case NodeTypes.INTERPOLATION:

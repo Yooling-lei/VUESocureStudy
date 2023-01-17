@@ -1,5 +1,5 @@
 import { NodeTypes } from "./ast";
-import { TO_DISPLAY_STRING } from "./runtimeHelper";
+import { CREATE_ELEMENT_VNODE, TO_DISPLAY_STRING } from "./runtimeHelper";
 
 export function generate(ast) {
   const context = createCodegenContext();
@@ -22,6 +22,7 @@ export function generate(ast) {
   };
 }
 
+/** 获取导入functions eg: const {xxx} = Vue */
 function genFunctionPreamble(ast: any, context) {
   const { push } = context;
   const VueBinging = "Vue";
@@ -37,6 +38,7 @@ function genFunctionPreamble(ast: any, context) {
   push("return ");
 }
 
+/** 根据type具体生成 render函数内部结构 */
 function genNode(node: any, context: any) {
   switch (node.type) {
     case NodeTypes.TEXT:
@@ -48,17 +50,27 @@ function genNode(node: any, context: any) {
     case NodeTypes.SIMPLE_EXPRESSION:
       genExpression(node, context);
       break;
-
+    case NodeTypes.ELEMENT:
+      genElement(node, context);
+      break;
     default:
       break;
   }
 }
 
+function genElement(node, context) {
+  const { push } = context;
+  const { tag } = node;
+  push(`${CREATE_ELEMENT_VNODE}("${tag}")`);
+}
+
+// 文本render
 function genText(node, context) {
   const { push } = context;
   push(`'${node.content}'`);
 }
 
+// 差值render interpolation 内部content为 expression
 function genInterpolation(node, context) {
   const { push } = context;
 
@@ -73,6 +85,7 @@ function genExpression(node, context) {
   push(`${node.content}`);
 }
 
+// 生成上下文
 function createCodegenContext() {
   const context = {
     code: "",

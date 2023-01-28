@@ -4,6 +4,8 @@ export const isObject = (val) => {
   return val !== null && typeof val === "object";
 };
 
+export const isString = (value) => typeof value === "string";
+
 export const EMPTY_OBJ = {};
 
 export const hasChanged = (newVal, oldVal) => !Object.is(newVal, oldVal);

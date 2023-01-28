@@ -1,3 +1,4 @@
+import { isString } from "../../shared";
 import { NodeTypes } from "./ast";
 import { CREATE_ELEMENT_VNODE, TO_DISPLAY_STRING } from "./runtimeHelper";
 
@@ -53,15 +54,56 @@ function genNode(node: any, context: any) {
     case NodeTypes.ELEMENT:
       genElement(node, context);
       break;
+    case NodeTypes.COMPOUND_EXPRESSION:
+      genCompoundExpression(node, context);
+      break;
+
     default:
       break;
   }
 }
 
+function genCompoundExpression(node: any, context: any) {
+  const { push } = context;
+  const { children } = node;
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (isString(child)) {
+      push(child);
+    } else {
+      genNode(child, context);
+    }
+  }
+}
+
 function genElement(node, context) {
   const { push } = context;
-  const { tag } = node;
-  push(`${CREATE_ELEMENT_VNODE}("${tag}")`);
+  const { tag, props, children } = node;
+  push(`_${CREATE_ELEMENT_VNODE}(`);
+  // genNode(children, context);
+  genNodeList(genNullable([tag, props, children]), context);
+  push(")");
+}
+
+function genNodeList(nodes, context) {
+  const { push } = context;
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (isString(node)) {
+      push(node);
+    } else {
+      genNode(node, context);
+    }
+    if (i < nodes.length - 1) {
+      push(",");
+    }
+  }
+}
+
+function genNullable(args: any[]) {
+  return args.map((arg) => arg ?? "null");
 }
 
 // 文本render

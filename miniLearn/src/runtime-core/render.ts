@@ -429,7 +429,10 @@ export function createRenderer(options) {
         if (!instance.isMounted) {
           const { proxy } = instance;
           // render()时this绑定实例的proxy对象
-          const subTree = (instance.subTree = instance.render.call(proxy));
+          const subTree = (instance.subTree = instance.render.call(
+            proxy,
+            proxy
+          ));
 
           // vnode -> patch
           // vnode -> element -> mountElement
@@ -447,7 +450,7 @@ export function createRenderer(options) {
             updateComponentPreRender(instance, next);
           }
 
-          const subTree = instance.render.call(proxy);
+          const subTree = instance.render.call(proxy, proxy);
           const prevSubTree = instance.subTree;
 
           instance.subTree = subTree;
@@ -458,7 +461,7 @@ export function createRenderer(options) {
         // 为了实现微任务更新
         scheduler() {
           console.log("scheduler update");
-          
+
           queueJobs(instance.update);
         },
       }
